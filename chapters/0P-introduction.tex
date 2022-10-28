@@ -1,0 +1,25 @@
+\chapter{Introduction}
+
+     \acrfull{ad} problems try to find samples that show an unexpected behavior or pattern given a context of \emph{normality}. These unexpected samples are referred to as \emph{anomalies} or \emph{outliers}.
+    \acrshort{ad} applied to mobile robots could be used to solve hazard detection problems without having prior knowledge nor definition of the hazards.
+    \\
+    
+    Recently, a solution \cite{wellhausen2020safe, mantegazza2022outlier} to \acrshort{ad} has been developed using autoencoders. Autoencoders have achieved state-of-the-art performance in the context of visual Anomaly Detection. However, such models require very large amounts of labeled data to be trained and tested on. This labeling can be very expensive in some fields where experts are required (i.e. Medical Images, Robotics, \dots). The goal of \acrfull{al} is to reduce this cost by carefully choosing the \emph{best} samples to be labeled to increase the model performance on the given task.
+    \\
+    
+    This thesis reports the work and research done to implement an \acrshort{al} system applied to the task of \emph{visual anomaly detection} for mobile robots using Undercomplete Convolutional Autoencoders.
+    First, we define a \emph{proxy} task based on the MNIST dataset, in which we consider a class as normal and all the others as anomalous. On this task, we compare different \acrshort{al} techniques adapted from literature. Later we compare the results of our model to a realistic dataset gathered using a ground robot.
+
+\newpage
+\section*{Thesis structure}
+This thesis is structured in the following chapters:
+
+\begin{itemize}
+    \item \textbf{\autoref{chap:rel-work}} discusses the background related work about Anomaly Detection, Active Learning, \emph{uncertainty} and \emph{representativeness} metrics;
+    \item \textbf{\autoref{chap:prob}} defines our problem and the proposed solution;
+    \item \textbf{\autoref{chap:dataset}} explains the hardware and software setup, the models and the dataset used;
+    \item \textbf{\autoref{chap:data-coll}} discusses the data collection and labeling process used to expand a real-life dataset;
+    \item \textbf{\autoref{chap:experiments}} explains the conducted experiments and the obtained results.
+\end{itemize}
+
+% TODO: implementare alla fine

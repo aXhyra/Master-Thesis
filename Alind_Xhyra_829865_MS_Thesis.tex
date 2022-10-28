@@ -1,0 +1,131 @@
+\documentclass[mscthesis, 12pt, a4paper, oneside]{usiinfthesis}
+\usepackage{float}
+\usepackage{lipsum}
+\usepackage{graphicx}
+\usepackage[acronym, toc]{glossaries}
+\usepackage{listings}
+\usepackage{breqn}
+\usepackage{subfig}
+\usepackage{csquotes}
+\usepackage[shortlabels, inline]{enumitem}
+\usepackage[normalem]{ulem}
+\useunder{\uline}{\ul}{}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+
+\makeatletter
+\patchcmd\eq@setnumber{\stepcounter}{\refstepcounter}{}{%
+  \errmessage{Patching \noexpand\eq@setnumber failed}%
+}
+\makeatother
+
+
+\lstdefinelanguage{algebra}
+{morekeywords={import,sort,constructors,observers,transformers,axioms,if,
+else,end},
+sensitive=false,
+morecomment=[l]{//s},
+}
+
+
+\title{Active Learning for Visual Anomaly Detection Applied to Mobile Robots} %compulsory
+\specialization{Artificial Intelligence}%optional
+%\subtitle{Subtitle: A modern \textbf{Active Learning} approach} %optional 
+\author{Alind Xhyra} %compulsory
+\begin{committee}
+\advisor{Prof.}{Alessandro Giusti}{Advisor} %compulsory
+\coadvisor{}{Dario Mantegazza}{Co-Advisor}{} %optional
+\coadvisor{Prof.}{Domenico Giorgio Sorrenti}{Co-Advisor}{} %optional
+\end{committee}
+\Day{27} %compulsory
+\Month{October} %compulsory
+\Year{2022} %compulsory, put only the year
+\place{Lugano} %compulsory
+
+% \dedication{To my beloved} %optional
+\openepigraph{\enquote{A computer would deserve to be called intelligent if it could deceive a human into believing that it was human.}}{Alan Turing} %optional
+
+%\makeindex %optional, also comment out \theindex at the end
+\include{glossary}
+\makenoidxglossaries
+
+
+\begin{document}
+
+
+\maketitle %generates the titlepage, this is FIXED
+
+\frontmatter %generates the frontmatter, this is FIXED
+
+\begin{abstract}
+
+
+
+State-of-the-art approaches for visual Anomaly Detection rely on Deep Learning techniques; these techniques require an enormous amount of labeled data for training. This data in some specific fields such as medical imagery, robotics, and safety-critical situations may require expert annotators. Because their time is limited, such labeling is expensive.
+\acrfull{al} tries to overcome this issue by choosing from the available unlabeled data only the samples that improve most the knowledge of the model.
+
+
+We adapt and compare different Active Learning techniques applied to Anomaly Detection tasks for ground mobile robots, using only the robot's camera stream as input. We test them on a proxy task based on the MNIST dataset. We acquire an additional dataset for experimentation by recording a robot's camera feed while it is moving around different corridors on a university campus. The dataset is collected from divers scenarios and stages more more than a dozen types of anomalies. The dataset is composed of more than 40GB of images counting up to 228,795 total frames. We replicate the experiments defined on the collected dataset to check the performance of the \acrshort{al} methods studied.
+
+% \acrfull{dl} approaches to \acrfull{ad} have reached state-of-the-art performance. Such techniques require an enormous amount of labeled data to be available, which in some specific or niche fields such as medical imagery, robotics, and safety-critical situations may require expert annotators. Since their time is limited, relying only on experts for \acrshort{dl} approaches may not be reliable. \acrfull{al} tries to overcome this issue by choosing from the available unlabeled data only the samples that improve the knowledge of the model.
+
+% We propose an autoencoder model for \acrshort{ad} applied to ground mobile robots, using only the robot's camera stream as input. We acquire training and testing datasets for this problem by recording the robot's camera feed while moving around different corridors on the university campus. This system lets us collect data from diverse scenarios and stage more than a dozen types of anomalies, composed by more than 40GB of raw data collected across six environments. We then train an autoencoder on a proxy task based on the MNIST dataset to find and test different model configurations and \acrshort{al} approaches adapted from literature. Once we find the best model setup and metrics, we move to the collected one to check the performance of the \acrshort{al} methods found.
+
+
+
+\end{abstract}
+
+% \begin{abstract}[Sommario]
+
+% \end{abstract}
+
+% \begin{acknowledgements}
+% \lipsum 
+% \end{acknowledgements}
+
+\tableofcontents 
+\listoffigures %optional
+\listoftables %optional
+\lstlistoflistings
+
+\include{chapters/0P-introduction}
+
+\mainmatter
+
+\include{chapters/1-Related-work}
+\include{chapters/2-Problem-description}
+\include{chapters/3-Dataset-and-model}
+\include{chapters/4-Data-collection}
+\include{chapters/5-Experiments}
+% \include{chapters/6-Results}
+\include{chapters/6-Conclusion}
+
+\appendix %optional, use only if you have an appendix
+
+% \include{appendices/A-figures}
+\fontsize{9}{9}\selectfont
+\include{appendices/B-Code}
+\fontsize{12}{12}\selectfont
+
+
+\backmatter
+
+
+% \chapter{Glossary} %optional
+\printnoidxglossary[type=\acronymtype,title=Acronyms]
+% \printnoidxglossaries[type=\acronymtype]
+
+\clearpage
+
+% \bibliographystyle{alpha}
+% \bibliographystyle{dcu}
+\bibliographystyle{plainnat}
+\bibliography{biblio}
+
+%\cleardoublepage
+%\theindex %optional, use only if you have an index, must use
+	  %\makeindex in the preamble
+
+\end{document}

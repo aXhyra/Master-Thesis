@@ -1,0 +1,206 @@
+\chapter{Code}
+\label{chap:code}
+
+\section{Autoencoder classes}
+\subsection{Autoencoder}
+\lstinputlisting[language=Python]{code/autoencoder.py}
+
+\subsection{Convolutional encoder}
+\lstinputlisting[language=Python]{code/convolutional_encoder.py}
+
+\subsection{Bottleneck}
+\lstinputlisting[language=Python]{code/bottleneck.py}
+
+\section{Dataset classes}
+\subsection{Dataset Handler}
+\lstinputlisting[language=Python]{code/dataset_handler.py}
+\subsection{Dataset}
+\lstinputlisting[language=Python]{code/dataset.py}
+
+\section{Utility Scripts}
+\subsection{Function get_most_anomalous}
+\lstset{language=python}
+\begin{lstlisting}
+def get_most_anomalous(model, data, n=100, criterion=None):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model.eval()
+    loss_fn = torch.nn.L1Loss()
+    losses = []
+    dataloader = torch.utils.data.DataLoader(data, batch_size=1, shuffle=True,
+                                             pin_memory=True, num_workers=4)
+    with torch.no_grad():
+        for frame, _ in tqdm(dataloader):
+            frame = frame.to(device)
+            enc, dec = model(frame)
+            loss = loss_fn(frame, dec)
+            losses.append(loss.item())
+
+    idx = np.argsort(losses)[::-1][:n]
+    return torch.utils.data.Subset(data, idx), idx
+\end{lstlisting}
+
+\subsection{Function get_most_informative}
+\lstset{language=python}
+\begin{lstlisting}
+def get_most_informative(model, data, train_data, n=100, criterion="error_map"):
+    '''
+    Return the n most informative frames,
+    informativeness score based on model uncertainty
+    '''
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    dataloader = torch.utils.data.DataLoader(data, batch_size=64, shuffle=True,
+                                             pin_memory=True, num_workers=4)
+    train_loafer = torch.utils.data.DataLoader(train_data, batch_size=64,
+                                               shuffle=True, pin_memory=True,
+                                               num_workers=4)
+    model.eval()
+
+    latent_spaces = []
+    train_latent_spaces = []
+
+    with torch.no_grad():
+        for frame, _ in tqdm(dataloader):
+            frame = frame.to(device)
+            enc, dec = model(frame)
+            for l_space in enc:
+                latent_spaces.append(l_space.detach().cpu().numpy())
+        for frame, _ in tqdm(train_loafer):
+            frame = frame.to(device)
+            enc, dec = model(frame)
+            for l_space in enc:
+                train_latent_spaces.append(l_space.detach().cpu().numpy())
+
+    latent_spaces = np.array(latent_spaces)
+    train_latent_spaces = np.array(train_latent_spaces)
+
+    latent_spaces = (latent_spaces - train_latent_spaces.mean(
+        axis=0)) / train_latent_spaces.std(axis=0)
+    train_latent_spaces = (train_latent_spaces - train_latent_spaces.mean(
+        axis=0)) / train_latent_spaces.std(axis=0)
+
+    if criterion.lower() == "error_map":
+        informativeness = []
+        with torch.no_grad():
+            for frame, _ in tqdm(dataloader):
+                frame = frame.to(device)
+                enc, dec = model(frame)
+                for in_frame, decoded in zip(frame, dec):
+                    error_map = np.clip(
+                        abs(decoded.cpu().detach().numpy() -
+                            in_frame.cpu().detach().numpy()),
+                        0, 1)
+                    anomaly_map = error_map.reshape(-1)
+                    informativeness.append(np.mean(anomaly_map))
+
+        idx = np.argsort(informativeness)[::-1][:n]
+
+    elif criterion.lower() == "latent_distance":
+
+        l_mean = np.mean(train_latent_spaces, axis=0)
+
+        informativeness = [np.mean(np.abs(l_space - l_mean)) for l_space in
+                           tqdm(latent_spaces)]
+        idx = np.argsort(informativeness)[::-1][:2 * n]
+        informativeness = []
+        for i in tqdm(idx):
+            info_score = 0
+            l_space = latent_spaces[i]
+            for j in idx:
+                l_space_j = latent_spaces[j]
+                info_score += np.linalg.norm(l_space - l_space_j).item()
+            informativeness.append(info_score / len(idx))
+
+        new_idx = np.argsort(informativeness)[::-1][:n]
+        idx = idx[new_idx]
+
+    elif criterion == "minmax":
+
+        distances = distance_matrix(train_latent_spaces, latent_spaces)
+
+        # most_distant_per_train = np.argmax(distances, axis=1)
+        most_close_per_unlabel = np.argmin(distances, axis=0)
+        closeness_per_unlabel = [np.argsort(distances[:, i]) for i in
+                                 range(len(distances[0]))]
+        print(np.max(most_close_per_unlabel))
+        lst = [[] for _ in range(np.max(most_close_per_unlabel) + 1)]
+        idx = [[] for _ in range(np.max(most_close_per_unlabel) + 1)]
+        for i, p in enumerate(most_close_per_unlabel):
+            lst[p].append(distances[p, i])
+            idx[p].append(i)
+        ids = []
+        for i in range(len(lst)):
+            if lst[i]:
+                ids.append(np.argmax(np.array(lst[i])))
+            else:
+                ids.append(0)
+                idx[i].append(np.argmax(distances[i, :]))
+        new_idx = [idx[i][num] for i, num in zip(range(len(ids)), ids) if
+                   num is not None]
+        idx = new_idx[:n]
+
+        informativeness = []
+
+        sorted_dist = []
+        sorted_idx = []
+
+    elif criterion == "minmax_iterative":
+        # distances = distance_matrix(train_latent_spaces, latent_spaces)
+        dtree = cKDTree(train_latent_spaces)
+        closest_point = dtree.query(latent_spaces, k=1)[1]
+        distances = [minkowski_distance(p, nn) for p, nn in
+                     zip(latent_spaces, closest_point)]
+        original_ids = [i for i in range(len(latent_spaces))]
+        idx = []
+
+        with tqdm(total=n) as pbar:
+            while len(idx) < n:
+                chosen = np.argmax(distances)
+                true_chosen = original_ids[chosen]
+                original_ids = original_ids
+                idx.append(true_chosen)
+                pbar.update(1)
+                l_space = latent_spaces[true_chosen]
+                # latent_spaces = np.delete(latent_spaces, chosen, axis=0)
+                original_ids.remove(true_chosen)
+                distances.remove(distances[chosen])
+                new_dists = [minkowski_distance(l_space, other) for other in
+                             latent_spaces]
+                distances = [min(d1, d2) for d1, d2 in
+                             zip(distances, new_dists)]
+
+    elif criterion == "minmax_iterative2":
+        ds = cdist(train_latent_spaces, latent_spaces)
+        ds = np.min(ds, axis=0)
+        rs = []
+
+        for _ in trange(n):
+            i = np.argmax(ds)
+            rs.append(i)
+            nds = cdist(latent_spaces, latent_spaces[i:i + 1])[:, 0]
+            ds = np.minimum(ds, nds)
+        idx = rs
+
+    elif criterion == "minmax_anomaly":
+        ds = cdist(train_latent_spaces, latent_spaces)
+        ds = np.min(ds, axis=0)
+        idx = []
+        samples = None
+        rs = []
+
+        print("Selecting samples from clusters")
+        for _ in trange(3 * n):
+            i = np.argmax(ds)
+            rs.append(i)
+            nds = cdist(latent_spaces, latent_spaces[i:i + 1])[:, 0]
+            ds = np.minimum(ds, nds)
+        idx = rs
+
+        print("Selecting most anomalous samples")
+        dataset = torch.utils.data.Subset(data, idx)
+        data, idx = get_most_anomalous(model, dataset, n)
+        return data
+
+    else:
+        raise ValueError("Criterion not supported")
+    return torch.utils.data.Subset(data, idx)
+\end{lstlisting}

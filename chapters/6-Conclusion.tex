@@ -1,0 +1,46 @@
+\chapter{Conclusions}
+\label{chap:conclusions}
+
+% Punti chiave:
+% Approcci AL si sono dimostrati funzionanti (battuto AL1) 
+% AL6 e AL8 sono gli approcci con variabilità maggiore su MNIST 
+% Al8 (Min-Max + anomaly score) è approccio più promettente per Campus, mentre per MNIST AL4 ha avuto I risultati migliori 
+% MNIST si è dimostrato un dataset molto semplice, dove AL probabilmente non è necessario
+% Miglioramenti su campus dataset più marcati rispetto a MNIST 
+% Dati e approcci verificati anche con baseline dummy  
+% Esplorata complessitá dataset RM considerando meno campioni 
+
+ 
+
+ 
+
+% Ha senso usare AL? 
+% MNIST lo conferma 
+% Quale è l’approccio migliore? 
+% MNIST non lo dice 
+% Se MNIST non lo fornisce ha senso cercare su un dataset più complesso? 
+% Sì 
+% Si nota qualche trend sul dataset Campus? 
+% Si nota che i modelli che fanno sampling sull’embedding performano meglio 
+% Data augmentation influisce sui risultati? 
+% Augmentation porta a performance + alte di base  
+
+The objective of this work is to study \acrfull{al} techniques applied to \acrfull{ad} to reduce the training data while retaining similar performance on the test set.
+\\
+
+To achieve this we first build an \acrshort{ad} model inspired by the work done at \acrfull{idsia}. We then research the literature to find the metrics used for \acrshort{al} and explain them. After the literature research, we define our problem and design our solutions. We extend a real-life dataset for \acrshort{ad} with new samples collected using a ground robot with a front-facing camera. Then we perform our experiments on both a \emph{proxy} task defined on the MNIST dataset and the previously extended real-life dataset.
+\\  
+    
+Our results show that on MNIST no \acrshort{al} approach has outperformed the others in a significant way. We assume this happened because MNIST is too simple for this task. On the other hand, for the dataset that we have collected, the most performing approach among all tested is the hybrid min-max with anomaly score. It reaches an \acrfull{auc} close to the upper bound model with only a small fraction of the training set. In the real-life dataset, we notice that the \acrshort{al} approaches that work on the latent space of the \acrfull{ae} outperform the approaches that work in the image space.
+
+\section{Future Works}
+The results of this work show that the proposed \acrshort{al} approach is viable for \acrshort{ad} applications in the context of mobile robots. To further improve the work we suggest the following:
+
+\begin{itemize}
+    \item \textbf{More Complex Models}:
+    In this work, we have only used a simple \acrfull{ae}. It is possible to use more complex models such as \acrfull{vae} or Real-NVP based models to see if they can achieve better results.
+    \item \textbf{More Challenging Dataset}:
+    The Corridor scenario of the dataset we used turned out not to be very challenging. Testing the \acrshort{al} approaches in more challenging scenarios would be interesting to test the approaches on a more difficult real-life setting.
+    \item \textbf{Transfer Learning techniques}:
+    In this work, we have used the real-life dataset as a single Domain. However real-life scenarios are often diverse. It would be interesting to test our AL solution while keeping in consideration Domain Adaptation.
+\end{itemize}

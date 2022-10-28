@@ -1,0 +1,162 @@
+\chapter{Problem definition and solution design}
+\label{chap:prob}
+
+In this chapter, we introduce the problem we are trying to solve, the metrics used, and the proposed solutions.
+
+\section{Problem introduction}
+\label{sec:Problem-intro}
+
+% Researchers of \acrfull{idsia} Robotics in Lugano, Switzerland have developed a model \cite{Idsia} for anomaly detection applied to mobile robots which use only the visual sensing data stream coming from the robot's camera, from which an \emph{anomaly score} is computed: the higher the score the higher the probability the frame was anomalous.
+
+% The advantages of using robots for anomaly detection are many. One of them could be the automatic exploration of tight tunnels to find sections that might need maintenance or replacement. Another similar application might be the autonomous exploration of a human-hostile environment. In this case, the robot has to be able to safely explore the environment and come back to the base to upload the collected data.
+
+% In the case of this thesis, an anomaly is a situation with whatever discrepancy from the original training data (i.e., fallen objects, debris on the ground, mist, \dots). Such events are supposed to be rare and uncommon.
+% \\
+% \\
+% \acrfull{ml} approaches to this problem, such as autoencoders, require large amounts of labeled data to achieve state-of-the-art performances. In this context, the data is specific and dependent on the used robot and the required task (i.e., tunnels, and road inspection). Acquiring and labeling such data is a long, tedious, and expensive process because it requires an \emph{expert} of the sector, whose time can be limited.
+% \acrfull{al} tries to overcome this problem by selecting from a pool of unlabeled data the ones which are supposed to be the most useful for the model to improve its knowledge of the task.
+% \\
+% \\
+% The objective of this thesis will be to create a similar performing model to the one described above. Then we will try to improve the results by finding and adapting \emph{uncertainty} metrics from literature to our task to improve performance.
+
+
+\acrshort{ad} applied to mobile robots allows them to find and avoid anomalies such as potential hazards never seen at design time. This is useful in many applications, such as hazard detection and avoidance during the exploration of tight tunnels to find sections that might need maintenance or replacement, or the autonomous exploration of a human-hostile environment. The robot's goal is to safely explore the environment and come back to the base to upload the collected data.
+
+
+However, training \acrshort{dl} models for \acrshort{ad} with visual data requires a large amount of specific and labeled data. This labeling process requires experts in the field, whose time is limited,  making the process expensive. The use of \acrshort{al} methods tries to reduce this cost by reducing the amount of data required. \acrshort{al} methods have never been applied to the context of \acrshort{ad} for robots.
+
+
+We study which approach from the literature can be adapted to work for our problem and we propose a new \acrshort{al} approach for \acrshort{ad} in robotics.
+\\
+
+    % \acrfull{ml} approaches to \acrfull{ad}, such as autoencoders, require large amounts of labeled data to achieve state-of-the-art performance. In this context, the data is specific to the problem solved. Acquiring and labeling such data might be a long and expensive process because it requires an \emph{expert} of the sector, whose time can be limited.
+    % \acrfull{al} tries to overcome this problem by selecting from a pool of unlabeled samples the ones which are supposed to be the most \emph{informative} for the model to improve its knowledge of the task. Another application of \acrshort{al} to \acrshort{ad} is adapting an existing model to a new environment, by requiring the expert to label samples on which the model is \emph{uncertain}.
+
+    Researchers of \acrfull{idsia}, Intelligent Robotics lab in Lugano, Switzerland have developed a model \cite{Idsia} for visual anomaly detection in the context of mobile robotics. Their objective is to use only the visual sensing data stream coming from the robot's front-facing camera to detect hazards that could pose a risk to the robot. 
+    \\
+
+    The first goal of this thesis is to replicate the work done in \acrshort{idsia}. Then, we extend the work by adapting \acrshort{al} techniques from literature to achieve similar performance while using a smaller training set.
+    \\
+    For simplicity, the majority of work is conducted and focused on a proxy task based on the MNIST dataset: a class of the dataset is used as normal, and the others are considered anomalous. The reason for this choice is that working on MNIST is more time-efficient than working on a realistic dataset. It also is image-based, class balanced, and a well-known and widely used dataset in the literature.
+    
+    The last experiments are conducted to compare the results of the found \acrshort{al} approaches on the realistic dataset gathered using a ground robot.
+
+\section{Active Learning metrics}
+    \subsection{Anomaly metrics}
+    \label{sec:anomaly-metrics}
+
+    The anomaly score is a metric used to determine whether a frame is anomalous or not. For our work we used the \acrshort{mse} (\autoref{eq:mse}) between the input and the output of the \acrshort{ae} \cite{sakurada2014anomaly}.
+    
+    \subsubsection{Mean Squared Error (MSE)}
+    The \acrfull{mse} is a common metric used to evaluate the performance of regression models. It is defined as:
+    \begin{equation}
+        \text{MSE} = \frac{1}{n} \sum_{i=1}^{n} |y_i - \hat{y}_i|^2
+        \label{eq:mse}
+    \end{equation}
+    where $y_i$ is the ground-truth value and $\hat{y}_i$ is the predicted value for the $i$-th sample. The \acrshort{mse} is a good metric to evaluate the performance of regression models. However, it is not a good metric to evaluate the performance of classification models, since it does not take into account the class imbalance. We optimize this metric during the model training and we use it to compute an \emph{anomaly score} during prediction.
+
+    \subsubsection{Mean Absolute Error (MAE)}
+    The \acrfull{mae} is defined as:
+    \begin{equation}
+        \text{MAE} = \frac{1}{n} \sum_{i=1}^{n} |y_i - \hat{y}_i|
+        \label{eq:mae}
+    \end{equation}
+    where $y_i$ is the true value and $\hat{y}_i$ is the predicted value for the $i$-th sample. The \acrshort{mae} is a good metric to evaluate the performance of regression models. As for the \acrshort{mse}, it is not a good metric to evaluate the performance of classification models. This metric is tracked during the model training.
+
+    \subsection{Informativeness metrics}
+        
+        \subsubsection{Average latent distance}
+        \label{sub:avg-dist}
+        As an informativeness metric, we use the metric proposed by Smailagic et al~\cite{smailagic2018medal}. They try to combine uncertainty and representativeness by measuring the distance between the outputs of internal layers of a \acrshort{cnn} and choosing the farthest sample:
+        \begin{dmath}
+            {s(x) = \frac{1}{N}\sum_{i=1}^N\text{dist}(e(x_i), e(x)),}
+            \\
+            {x_i\in L_{train}}
+            \label{eq:intermediate-cnn}
+        \end{dmath}
+        Where $e$ is the feature extractor (in our case the encoder of the \acrshort{ae}), $x$ is the input frame from the unlabeled data, $x_i$ is a frame from the training set, and $N$ is the number of frames in the training set.
+        $s(x)$ will be the informativeness of the sample $x$. This metric is computed for each sample in the unlabeled set. Then the samples with the highest score are selected for labeling.
+
+    \subsubsection{Min-Max approach}
+    \label{sub:minmax}
+    The Min-Max approach is inspired by the metric proposed by Beluch et al~\cite{beluch2018power} (\autoref{eq:core-set}).
+    
+    The proposed approach avoids selecting similar (i.e. close in latent space) samples.
+    It works in the following way:
+    \begin{enumerate}
+        \item computes the distances between each sample in the labeled set and the unlabeled samples;
+        \item for each unlabeled sample selects the closest labeled one;
+        \item for each selected labeled sample selects the furthest unlabeled sample.
+    \end{enumerate}
+
+    If the min-max approach is \emph{naive} it queries all required samples in a single pass.
+    Otherwise, every time a sample is queried, this is inserted into the labeled set. The distances are updated and a new sample is queried in the next pass.
+    
+    \begin{equation}
+        u = \argmax_{i\in [n]\textbackslash s}~\min_{j\in s}~dist(z_i, z_j)
+        \label{eq:core-set}
+    \end{equation}
+    
+    
+\section{Proposed solutions}
+    \label{sub:al}
+    We propose 8 \acrshort{al} setups, named $ALi$ with $i$ an integer from 1 to 8 (e., g., $AL1$, $AL2$, \dots) briefly summarized in~\autoref{tab:al-methods}.
+    
+    % Please add the following required packages to your document preamble:
+    % \usepackage{graphicx}
+    % \usepackage[normalem]{ulem}
+    % \useunder{\uline}{\ul}{}
+    \begin{table}[H]
+    \centering
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{c|l|l|l}
+    \textbf{Method} & \multicolumn{1}{c|}{\textbf{Description}}                                          & \multicolumn{1}{c|}{\textbf{\acrshort{al} Metric}}                                                  & \multicolumn{1}{c}{\textbf{\acrshort{al} Space Dimensionality}} \\ \hline
+    {\ul AL1}       & Baseline no \acrshort{al}                                                          & None                                                                                                & None                                        \\ \hline
+    {\ul AL2}       & Random \acrshort{al}                                                               & None                                                                                                & None                                        \\ \hline
+    {\ul AL3.1}     & Most Anomalous                                                                     & Anomaly score (\acrshort{mse})                                                                      & 1                                           \\ \hline
+    {\ul AL3.2}     & \begin{tabular}[c]{@{}l@{}}Most Anomalous\\ Intermediate model\end{tabular}        & Anomaly score (\acrshort{mse})                                                                      & 1                                           \\ \hline
+    {\ul AL4}       & \begin{tabular}[c]{@{}l@{}}Mean distance on\\ latent space\end{tabular}            & \begin{tabular}[c]{@{}l@{}}Distance on\\ \acrshort{ae}'s bottleneck\end{tabular}                    & bottleneck size                             \\ \hline
+    {\ul AL5}       & \begin{tabular}[c]{@{}l@{}}Hybrid: Most anomalous\\ and mean distance\end{tabular} & \begin{tabular}[c]{@{}l@{}}Anomaly score + \\ Distance on\\ \acrshort{ae}'s bottleneck\end{tabular} & 1 and bottleneck size                       \\ \hline
+    {\ul AL6}       & Naive MinMax                                                                       & \begin{tabular}[c]{@{}l@{}}MinMax distance on\\ \acrshort{ae}'s bottleneck\end{tabular}             & bottleneck size                             \\ \hline
+    {\ul AL7}       & Iterative MinMax                                                                   & \begin{tabular}[c]{@{}l@{}}MinMax distance on\\ \acrshort{ae}'s bottleneck\end{tabular}             & bottleneck size                             \\ \hline
+    {\ul AL8}       & \begin{tabular}[c]{@{}l@{}}Hybrid: MinMax and\\ most anomalous\end{tabular}        & \begin{tabular}[c]{@{}l@{}}Anomaly score + \\ \acrshort{ae}'s bottleneck\end{tabular}               & 1 and bottleneck size                      
+    \end{tabular}%
+    }
+    \caption{Summary of the \acrshort{al} techniques used}
+    \label{tab:al-methods}
+    \end{table}
+    
+    \subsection{Baselines}
+    $AL1$ and $AL2$ are the baseline approaches. In the first one, a model is trained without the use of \acrshort{al}. The latter randomly queries samples from the unlabeled pool.
+    
+    \subsection{Anomaly-based approaches}
+    Anomaly-based approaches use only the anomaly score as a metric to perform \acrshort{al}. These models are $AL3.1$ and $AL3.2$
+    \\
+    \\
+    For $AL3.1$ and $AL3.2$, we choose to query the most anomalous samples (i.e., the samples with the highest anomaly score) by using the \acrshort{mse} between the input and the output of the trained \acrshort{ae}.
+    Both approaches are similar in function: an \acrshort{ae} is initially trained on a small initial training set. Then, this model is used to query new samples from the \emph{unlabeled} pool using the model's anomaly score. However, $AL3.2$ takes an intermediate step: it trains a second intermediate model with half of the required samples. It then uses this newly trained model to query the second half of the samples from the unlabeled set. The final model is trained on all of the newly labeled samples.
+    
+    \subsection{Informativeness-based approaches}
+    
+    Informativeness-based approaches make use of \emph{informativeness} metrics to perform \acrshort{al}. These methods are $AL4$,  $AL6$, and $AL7$.
+    
+    As for the anomaly-based approaches, these methods first train an intermediate model on a small initial training set. This model is then used to query the samples from the unlabeled pool using \emph{informativeness} metric.
+    \\
+    \\
+    $AL4$ queries the to-be-labeled samples from the unlabeled set using the \emph{average latent distance} metric described in \autoref{sub:avg-dist}.
+    \\
+    \\
+    $AL6$ and $AL7$ use the \emph{MinMax} approach described in \autoref{sub:minmax}. The difference between them is that while $AL6$ uses the \emph{naive} variant of the approach, $AL7$ does use the iterative version. In this version, the distances are recomputed after each sample is queried and labeled.
+    
+    
+    
+    \subsection{Hybrid approaches}
+    Hybrid approaches use both \emph{anomaly} and \emph{informativeness} metrics. These methods are $AL5$ and $AL8$.
+    \\
+    \\
+    $AL5$ Combines $AL3$ with $AL4$. It queries the first half of the required unlabeled samples using the criterion of $AL3$, the other half with $AL4$'s one.
+    \\
+    \\
+    $AL8$ Uses a hybrid version iterative \emph{min-max} approach, which includes some concept of \emph{anomaly}. It begins by using the naive min-max approach to query a small subset of samples. Then, from these, it queries the one with the highest \emph{anomaly score}. This sample is labeled and added to the labeled set. Distances are then recomputed and the method continues until all the required samples are selected.
+    
+    
